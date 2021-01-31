@@ -28,6 +28,7 @@ uint32_t readADC(ADC_HandleTypeDef hadc, uint32_t channel);
 int runTest();
 void startUpLCD(LCDController);
 void calibrateSensors();
+void waitForLaser();
 
 void CppMain() {
 
@@ -49,7 +50,7 @@ void CppMain() {
     myLCD.setCursor(3,3);
     myLCD.print("for 10 seconds");
 
-    HAL_Delay(4000);
+    waitForLaser();
 
     myLCD.clear();
     myLCD.setCursor(0,0);
@@ -60,7 +61,7 @@ void CppMain() {
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
         timeRemaining = testDuration - ((period*(j+1))/1000); //Time remaings in seconds
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
-            sensorValues[j][i] = (readADC(hadc,analogReadPins[i]) / norm) - calibration; //Reading and recording sensor value
+            sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
             HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
         if  (timeRemaining > 0) {
@@ -91,6 +92,20 @@ void CppMain() {
 
     HAL_Delay(5000);
 	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_RESET);
+}
+
+void waitForLaser() {
+    while (isReady < 1.1*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
+        isReady = 0; //Sets variable back to zero each time through the while loop
+        score = 0;
+        for (int i = 0; i <= (numRings-1); i++) { // For each sensor
+            sensorValues[0][i] = (int)(readADC(hadc, analogReadPins[i])) / norm;//Read each sensor
+            HAL_Delay(5); //Wait 5 ms
+            isReady = isReady + ((sensorValues[0][i]) / numRings); //Summing up all readings and taking aveage
+        }
+        countUp++;
+        if (countUp > 100) { HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_RESET);; }
+    }
 }
 
 void calibrateSensors() {
