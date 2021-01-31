@@ -29,13 +29,6 @@ int runTest();
 void startUpLCD(LCDController);
 void calibrateSensors();
 
-//current state of the program
-enum state {
-	STARTUP,
-	RUNNING_TEST,
-	SHUTTING_DOWN
-};
-
 void CppMain() {
 
 	LCDController myLCD(GPIOB, GPIO_PIN_15, GPIO_PIN_14, GPIO_PIN_13,
