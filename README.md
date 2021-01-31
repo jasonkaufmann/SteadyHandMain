@@ -1,1 +1,2 @@
 SteadyHandMain
+Hand dexterity measurement device
