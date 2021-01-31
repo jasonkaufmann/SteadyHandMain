@@ -1,0 +1,3 @@
+DigitalPin.cpp:17:1:DigitalPin::DigitalPin(GPIO_TypeDef*, uint16_t)	24	static
+DigitalPin.cpp:22:6:void DigitalPin::write(int)	16	static
+DigitalPin.cpp:29:15:GPIO_PinState DigitalPin::read()	16	static
