@@ -76,13 +76,14 @@ void CppMain() {
 
 void runTest(LCDController myLCD) {
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
-        timeRemaining = testDuration - ((period*(j+1))/1000); //Time remaining in seconds
+        timeRemaining = testDuration - ((period*(j))/1000); //Time remaining in seconds
+
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
             //HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
-        if  (timeRemaining > 0) {
 
+        if  (timeRemaining > 0) {
             myLCD.setCursor(0,2);
             myLCD.print("  ");
             myLCD.setCursor(0,2);
