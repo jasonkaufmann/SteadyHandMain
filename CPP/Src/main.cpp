@@ -5,7 +5,7 @@
 
 /******************Global variables****************/
 const int testDuration = 10; //in seconds
-const int sampleFrequency = 3; //in Hertz
+const int sampleFrequency = 25; //in Hertz
 const int numSamples = testDuration * sampleFrequency;
 const int numRings = 4;
 int sensorValues[numSamples][numRings] = {}; //2D array to record all samples
@@ -79,7 +79,7 @@ void runTest(LCDController myLCD) {
         timeRemaining = testDuration - ((period*(j+1))/1000); //Time remaining in seconds
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
-            HAL_Delay(3); //Wait 3 ms in between sensor readings
+            //HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
         if  (timeRemaining > 0) {
 
@@ -105,16 +105,18 @@ void calculateScore() {
 
 
 void waitForLaser() {
-    while (isReady < 1.1*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
+    while (isReady < 1.01*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
         isReady = 0; //Sets variable back to zero each time through the while loop
         score = 0;
         for (int i = 0; i <= (numRings-1); i++) { // For each sensor
             sensorValues[0][i] = (int)(readADC(hadc, analogReadPins[i])) / norm;//Read each sensor
             HAL_Delay(5); //Wait 5 ms
-            isReady = isReady + ((sensorValues[0][i]) / numRings); //Summing up all readings and taking aveage
+            isReady = isReady + ((sensorValues[0][i]) / numRings); //Summing up all readings and taking average
         }
         countUp++;
-        if (countUp > 100) { HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_RESET);; }
+        if (countUp > 500) {
+            HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_RESET); //turn off if accidentally turned on
+        }
     }
 }
 
