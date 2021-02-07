@@ -2,6 +2,7 @@
 #include "LCDController.h"
 #include <string>
 #include "string.h"
+#include <math.h>
 
 /******************Global variables****************/
 const int testDuration = 10; //in seconds
@@ -16,7 +17,7 @@ double w[4] = {2, 1.5, 1.25, 1}; //Sensor weights, by ring
 int max_score = 1; //Normalizing factor to divide by to make score a percent from 1% to 100%
 int norm = 10; //Normalizing factor to divide initial analogRead values.
 
-int timeRemaining = 0; //Initializing time remaining variable
+double timeRemaining = 0; //Initializing time remaining variable
 int countUp = 0;  //Keeps track of iteration count
 int calibration = 0; //Initializing calibration variable
 int isReady = 0; //Initializing variable to know when the user first shines laser at target to begin test.
@@ -76,7 +77,7 @@ void CppMain() {
 
 void runTest(LCDController myLCD) {
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
-        timeRemaining = testDuration - ((period*(j))/1000); //Time remaining in seconds
+        timeRemaining = testDuration - ((period*(j+1))/1000); //Time remaining in seconds
 
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
@@ -87,7 +88,7 @@ void runTest(LCDController myLCD) {
             myLCD.setCursor(0,2);
             myLCD.print("  ");
             myLCD.setCursor(0,2);
-            myLCD.print(std::to_string(timeRemaining));
+            myLCD.print(std::to_string(lround(timeRemaining)));
             myLCD.setCursor(2,2);
             myLCD.print(" seconds remaining");
         }
