@@ -10,14 +10,14 @@ const int sampleFrequency = 25; //in Hertz
 const int numSamples = testDuration * sampleFrequency;
 const int numRings = 4;
 int sensorValues[numSamples][numRings] = {}; //2D array to record all samples
-int period = 1000/sampleFrequency; //This is the amount of time, in ms, to wait before doing next sample.
+uint32_t period = 1000/sampleFrequency; //This is the amount of time, in ms, to wait before doing next sample.
 
 uint32_t analogReadPins[4] = {ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3};
-double w[4] = {2, 1.5, 1.25, 1}; //Sensor weights, by ring
+float w[4] = {2, 1.5, 1.25, 1}; //Sensor weights, by ring
 int max_score = 1; //Normalizing factor to divide by to make score a percent from 1% to 100%
 int norm = 10; //Normalizing factor to divide initial analogRead values.
 
-double timeRemaining = 0; //Initializing time remaining variable
+float timeRemaining = 0; //Initializing time remaining variable
 int countUp = 0;  //Keeps track of iteration count
 int calibration = 0; //Initializing calibration variable
 int isReady = 0; //Initializing variable to know when the user first shines laser at target to begin test.
@@ -28,11 +28,13 @@ int score = 0; //Initializing score variable
 
 /******** Initializing all functions ********/
 uint32_t readADC(ADC_HandleTypeDef hadc, uint32_t channel);
-void startUpLCD(LCDController);
+void startUpLCD(LCDController myLCD);
 void calibrateSensors();
 void waitForLaser();
 void runTest(LCDController myLCD);
-void calculateScore();
+int calculateScore();
+int map(int x, int in_min, int in_max, int out_min, int out_max);
+int numDigits(int x) ;
 /*********************************/
 
 void CppMain() {
@@ -63,46 +65,62 @@ void CppMain() {
 
     runTest(myLCD);
 
-    calculateScore();
+    int scorePercentage = calculateScore();
 
     myLCD.clear();
     myLCD.setCursor(0,0);
     myLCD.print("Score: ");
     myLCD.setCursor(0,3);
-    myLCD.print(std::to_string(score));
+    myLCD.print(std::to_string(scorePercentage));
+    int digits = numDigits(scorePercentage);
+    myLCD.setCursor(digits,3);
+    myLCD.print("%");
 
     HAL_Delay(5000); //wait for 5 seconds for doctor to record score
 	HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_RESET); //auto-shutoff
 }
 
 void runTest(LCDController myLCD) {
-    for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
-        timeRemaining = testDuration - ((period*(j+1))/1000); //Time remaining in seconds
 
+    myLCD.setCursor(2,2);
+    myLCD.print(" seconds remaining");
+
+    uint32_t start = HAL_GetTick();
+    uint32_t countDown, codeRunTime, delayTime;
+    for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
+        countDown = HAL_GetTick();
+        timeRemaining = testDuration - (float)(countDown-start)/1000.0f; //Time remaining in seconds
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
             //HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
 
         if  (timeRemaining > 0) {
-            myLCD.setCursor(0,2);
-            myLCD.print("  ");
+        	myLCD.setCursor(0,2);
+        	myLCD.print("  ");
             myLCD.setCursor(0,2);
             myLCD.print(std::to_string(lround(timeRemaining)));
-            myLCD.setCursor(2,2);
-            myLCD.print(" seconds remaining");
         }
-        HAL_Delay(period); //Wait
+        
+        codeRunTime = HAL_GetTick();
+        if ((codeRunTime-countDown) > period) {
+        	return;
+        } else {
+        	 delayTime = period-(codeRunTime-countDown);
+        	 HAL_Delay(delayTime); //Wait for the period to sample again
+        }
+
     }
 }
 
-void calculateScore() {
+int calculateScore() {
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             score = score + w[i]*sensorValues[j][i]; //muliple by appropriate weighting factor for each ring
         }
     }
-    score = score/max_score; //Normalizing score to make it a percent from 1% to 100%
+    if(score < 0) {score=0;}
+    return map(score,0,13500,0,100);
 }
 
 
@@ -159,4 +177,13 @@ uint32_t readADC(ADC_HandleTypeDef hadc, uint32_t channel) {
 	sConfig.Rank = ADC_RANK_NONE;
 	HAL_ADC_ConfigChannel(&hadc, &sConfig);
 	return raw;
+}
+
+int map(int x, int in_min, int in_max, int out_min, int out_max) {
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+int numDigits(int x)
+{
+    return (x < 10 ? 1 : (x < 100 ? 2 : 3));
 }

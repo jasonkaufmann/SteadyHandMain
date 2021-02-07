@@ -1,13 +1,16 @@
 gthr-default.h:229:1:int __gthread_key_delete(__gthread_key_t)	16	static
 basic_string.h:6405:3:std::__cxx11::string std::__cxx11::to_string(int)	24	static
 basic_string.h:6416:3:std::__cxx11::string std::__cxx11::to_string(long int)	24	static
-main.cpp:38:6:void CppMain()	432	static
-main.cpp:78:6:void runTest(LCDController)	192	static
-main.cpp:99:6:void calculateScore()	32	static
-main.cpp:109:6:void waitForLaser()	104	static
-main.cpp:125:6:void calibrateSensors()	104	static
-main.cpp:139:6:void startUpLCD(LCDController)	16	static
-main.cpp:146:10:uint32_t readADC(ADC_HandleTypeDef, uint32_t)	32	static
+cmath:1639:3:constexpr long int std::lround(float)	16	static
+main.cpp:40:6:void CppMain()	464	static
+main.cpp:83:6:void runTest(LCDController)	208	static
+main.cpp:116:5:int calculateScore()	32	static
+main.cpp:127:6:void waitForLaser()	104	static
+main.cpp:143:6:void calibrateSensors()	104	static
+main.cpp:157:6:void startUpLCD(LCDController)	16	static
+main.cpp:164:10:uint32_t readADC(ADC_HandleTypeDef, uint32_t)	32	static
+main.cpp:182:5:int map(int, int, int, int, int)	24	static
+main.cpp:186:5:int numDigits(int)	16	static
 string_conversions.h:99:5:) [with _String = std::__cxx11::basic_string<char>; _CharT = char]	60	dynamic
 basic_string.h:604:9:std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::basic_string(_InputIterator, _InputIterator, const _Alloc&) [with _InputIterator = char*; <template-parameter-2-2> = void; _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]	32	static
 basic_string.h:252:9:void std::__cxx11::basic_string<_CharT, _Traits, _Alloc>::_M_construct(_InIterator, _InIterator) [with _InIterator = char*; _CharT = char; _Traits = std::char_traits<char>; _Alloc = std::allocator<char>]	32	static
