@@ -119,8 +119,16 @@ int calculateScore() {
             score = score + w[i]*sensorValues[j][i]; //muliple by appropriate weighting factor for each ring
         }
     }
-    if(score < 0) {score=0;}
-    return map(score,0,13500,0,100);
+
+    int scaledScore = map(score,0,13500,0,100);
+    if (scaledScore < 0) {
+        return 0;
+    } else if (scaledScore > 100) {
+        return 100;
+    } else {
+        return scaledScore;
+    }
+
 }
 
 
