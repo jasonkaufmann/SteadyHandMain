@@ -6,7 +6,7 @@
 
 /******************Global variables****************/
 const int testDuration = 10; //in seconds
-const int sampleFrequency = 25; //in Hertz
+const int sampleFrequency = 25; //in Hertz (can't go above like 30Hz or we run out of RAM)
 const int numSamples = testDuration * sampleFrequency;
 const int numRings = 4;
 int sensorValues[numSamples][numRings] = {}; //2D array to record all samples
@@ -14,7 +14,6 @@ uint32_t period = 1000/sampleFrequency; //This is the amount of time, in ms, to 
 
 uint32_t analogReadPins[4] = {ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3};
 float w[4] = {2, 1.5, 1.25, 1}; //Sensor weights, by ring
-int max_score = 1; //Normalizing factor to divide by to make score a percent from 1% to 100%
 int norm = 10; //Normalizing factor to divide initial analogRead values.
 
 float timeRemaining = 0; //Initializing time remaining variable
@@ -45,9 +44,9 @@ void CppMain() {
 
     HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4, GPIO_PIN_SET); //keep alive. Do not write low or it will turn off
 
-    startUpLCD(myLCD);
+    startUpLCD(myLCD); //turn on LCD, clear the screen, and home it
 
-    calibrateSensors();
+    calibrateSensors(); //get the current room illumination as a baseline
 
     myLCD.clear();
     myLCD.setCursor(7,0);
@@ -57,7 +56,7 @@ void CppMain() {
     myLCD.setCursor(3,3);
     myLCD.print("for 10 seconds");
 
-    waitForLaser();
+    waitForLaser(); //wait until the laser hits one of the rings to start the test
 
     myLCD.clear();
     myLCD.setCursor(0,0);
@@ -95,6 +94,7 @@ void runTest(LCDController myLCD) {
             //HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
 
+        /*** print out the time remaining if the test is not done ***/
         if  (timeRemaining > 0) {
         	myLCD.setCursor(0,2);
         	myLCD.print("  ");
@@ -103,13 +103,15 @@ void runTest(LCDController myLCD) {
         }
         
         codeRunTime = HAL_GetTick();
+
+        //adjust the delay for the next sample depending on the time it took the
+        //above code to run
         if ((codeRunTime-countDown) > period) {
         	return;
         } else {
         	 delayTime = period-(codeRunTime-countDown);
         	 HAL_Delay(delayTime); //Wait for the period to sample again
         }
-
     }
 }
 
@@ -120,7 +122,7 @@ int calculateScore() {
         }
     }
 
-    int scaledScore = map(score,0,13500,0,100);
+    int scaledScore = map(score,0,13500,0,100); //map the score from 0 to 100%
     if (scaledScore < 0) {
         return 0;
     } else if (scaledScore > 100) {
