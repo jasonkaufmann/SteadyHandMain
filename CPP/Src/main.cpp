@@ -20,8 +20,6 @@ float timeRemaining = 0; //Initializing time remaining variable
 int countUp = 0;  //Keeps track of iteration count
 int calibration = 0; //Initializing calibration variable
 int isReady = 0; //Initializing variable to know when the user first shines laser at target to begin test.
-
-int score = 0; //Initializing score variable
 /**************************************************************************/
 
 
@@ -85,21 +83,26 @@ void runTest(LCDController myLCD) {
     myLCD.print(" seconds remaining");
 
     uint32_t start = HAL_GetTick();
-    uint32_t countDown, codeRunTime, delayTime;
+    uint32_t countDown, codeRunTime, delayTime; int previousValue = -1;
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
         countDown = HAL_GetTick();
         timeRemaining = testDuration - (float)(countDown-start)/1000.0f; //Time remaining in seconds
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
-            sensorValues[j][i] = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
+        	int analogValue = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
+            sensorValues[j][i] = analogValue;
             //HAL_Delay(3); //Wait 3 ms in between sensor readings
         }
 
         /*** print out the time remaining if the test is not done ***/
         if  (timeRemaining > 0) {
-        	myLCD.setCursor(0,2);
-        	myLCD.print("  ");
-            myLCD.setCursor(0,2);
-            myLCD.print(std::to_string(lround(timeRemaining)));
+            int roundTime = lround(timeRemaining);
+            if (roundTime != previousValue) {
+                myLCD.setCursor(0, 2);
+                myLCD.print("  ");
+                myLCD.setCursor(0, 2);
+                myLCD.print(std::to_string(roundTime));
+            }
+            previousValue = roundTime;
         }
         
         codeRunTime = HAL_GetTick();
@@ -116,13 +119,14 @@ void runTest(LCDController myLCD) {
 }
 
 int calculateScore() {
+	int score = 0; //Initializing score variable
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
             score = score + w[i]*sensorValues[j][i]; //muliple by appropriate weighting factor for each ring
         }
     }
 
-    int scaledScore = map(score,0,13500,0,100); //map the score from 0 to 100%
+    int scaledScore = map(score,0,80000,0,100); //map the score from 0 to 100%
     if (scaledScore < 0) {
         return 0;
     } else if (scaledScore > 100) {
@@ -135,9 +139,8 @@ int calculateScore() {
 
 
 void waitForLaser() {
-    while (isReady < 1.01*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
+    while (isReady < 1.25*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
         isReady = 0; //Sets variable back to zero each time through the while loop
-        score = 0;
         for (int i = 0; i <= (numRings-1); i++) { // For each sensor
             sensorValues[0][i] = (int)(readADC(hadc, analogReadPins[i])) / norm;//Read each sensor
             HAL_Delay(5); //Wait 5 ms
