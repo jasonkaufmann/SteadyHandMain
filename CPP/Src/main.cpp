@@ -9,11 +9,12 @@ const int testDuration = 10; //in seconds
 const int sampleFrequency = 25; //in Hertz (can't go above like 30Hz or we run out of RAM)
 const int numSamples = testDuration * sampleFrequency;
 const int numRings = 4;
-int sensorValues[numSamples][numRings] = {}; //2D array to record all samples
+int sensorValues[numSamples][numRings] = {0}; //2D array to record all samples
+int calibrationForEachRing[numRings] = {0};
 uint32_t period = 1000/sampleFrequency; //This is the amount of time, in ms, to wait before doing next sample.
 
 uint32_t analogReadPins[4] = {ADC_CHANNEL_0, ADC_CHANNEL_1, ADC_CHANNEL_2, ADC_CHANNEL_3};
-float w[4] = {2, 1.5, 1.25, 1}; //Sensor weights, by ring
+int w[4] = {4, 3, 2, 1}; //Sensor weights, by ring
 int norm = 10; //Normalizing factor to divide initial analogRead values.
 
 float timeRemaining = 0; //Initializing time remaining variable
@@ -83,14 +84,23 @@ void runTest(LCDController myLCD) {
     myLCD.print(" seconds remaining");
 
     uint32_t start = HAL_GetTick();
-    uint32_t countDown, codeRunTime, delayTime; int previousValue = -1;
+    uint32_t countDown, codeRunTime, delayTime; int previousValue = -1; int greatestDiff, ringChoice;
     for (int j = 0; j <= numSamples; j++) { //For each sample (moving through time)
         countDown = HAL_GetTick();
         timeRemaining = testDuration - (float)(countDown-start)/1000.0f; //Time remaining in seconds
+        greatestDiff = 0; ringChoice = 0;
         for (int i = 0; i <= (numRings-1); i++) { //For each sensor
-        	int analogValue = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibration); //Reading and recording sensor value
-            sensorValues[j][i] = analogValue;
-            //HAL_Delay(3); //Wait 3 ms in between sensor readings
+        	int analogValue = (int)((readADC(hadc,analogReadPins[i]) / norm) - calibrationForEachRing[i]); //Reading and recording sensor value
+        	if (analogValue > greatestDiff) {
+                greatestDiff = analogValue;
+                ringChoice = i;
+            }
+        }
+        for (int i = 0; i <= (numRings-1); i++) {
+        	sensorValues[j][i] = 0;
+			if(greatestDiff > 50 && ringChoice == i) {
+				sensorValues[j][i] = 1;
+			}
         }
 
         /*** print out the time remaining if the test is not done ***/
@@ -125,8 +135,7 @@ int calculateScore() {
             score = score + w[i]*sensorValues[j][i]; //muliple by appropriate weighting factor for each ring
         }
     }
-
-    int scaledScore = map(score,0,80000,0,100); //map the score from 0 to 100%
+    int scaledScore = map(score,0,1000,0,100); //map the score from 0 to 100%
     if (scaledScore < 0) {
         return 0;
     } else if (scaledScore > 100) {
@@ -139,12 +148,12 @@ int calculateScore() {
 
 
 void waitForLaser() {
-    while (isReady < 1.25*calibration) { //While the average reading from all sensors is less than 110% of the calibration read
+    while (isReady < 1.25*calibration) { //While the average reading from all sensors is less than 125% of the calibration read
         isReady = 0; //Sets variable back to zero each time through the while loop
         for (int i = 0; i <= (numRings-1); i++) { // For each sensor
-            sensorValues[0][i] = (int)(readADC(hadc, analogReadPins[i])) / norm;//Read each sensor
+            int value = (int)(readADC(hadc, analogReadPins[i])) / norm;//Read each sensor
             HAL_Delay(5); //Wait 5 ms
-            isReady = isReady + ((sensorValues[0][i]) / numRings); //Summing up all readings and taking average
+            isReady = isReady + (value / numRings); //Summing up all readings and taking average
         }
         countUp++;
         if (countUp > 500) {
@@ -155,15 +164,17 @@ void waitForLaser() {
 
 void calibrateSensors() {
 
-    // Doing calibration read
-    calibration = 0;
+	//int averagePerRing[numRings] = 0;
     HAL_Delay(500); //Wait half a second
-    for (int i = 0; i <= (numRings-1); i++) { // For each sensor
-        uint32_t initialValue = (readADC(hadc, analogReadPins[i])) / norm; //Read each sensor
-        sensorValues[0][i] = (int)initialValue;
-        HAL_Delay(5); //Wait 5 ms
-        calibration = calibration + ((sensorValues[0][i]) / numRings); //Taking the average value for the calibration base.
-
+    int value;
+    for (int j = 1; j <= 10; j++) {
+    	calibration = 0;
+		for (int i = 0; i <= (numRings-1); i++) { // For each sensor
+			 value = (int)((readADC(hadc, analogReadPins[i])) / norm); //Read each sensor
+			 calibrationForEachRing[i] = ((j-1) * calibrationForEachRing[i] + value)/j;
+			 calibration = calibration + (value / numRings);
+			HAL_Delay(5); //Wait 5 ms
+		}
     }
 }
 
