@@ -1,8 +1,7 @@
 #include "main.h"
 #include "LCDController.h"
+#include <cmath>
 #include <string>
-#include "string.h"
-#include <math.h>
 
 /******************Global variables****************/
 const int testDuration = 10; //in seconds
@@ -25,7 +24,7 @@ int isReady = 0; //Initializing variable to know when the user first shines lase
 
 
 /******** Initializing all functions ********/
-uint32_t readADC(ADC_HandleTypeDef hadc, uint32_t channel);
+uint32_t readADC(ADC_HandleTypeDef gADC, uint32_t channel);
 void startUpLCD(LCDController myLCD);
 void calibrateSensors();
 void waitForLaser();
@@ -105,7 +104,7 @@ void runTest(LCDController myLCD) {
 
         /*** print out the time remaining if the test is not done ***/
         if  (timeRemaining > 0) {
-            int roundTime = lround(timeRemaining);
+            int roundTime = std::lround(timeRemaining);
             if (roundTime != previousValue) {
                 myLCD.setCursor(0, 2);
                 myLCD.print("  ");
@@ -135,15 +134,7 @@ int calculateScore() {
             score = score + w[i]*sensorValues[j][i]; //muliple by appropriate weighting factor for each ring
         }
     }
-    int scaledScore = map(score,0,1000,0,100); //map the score from 0 to 100%
-    if (scaledScore < 0) {
-        return 0;
-    } else if (scaledScore > 100) {
-        return 100;
-    } else {
-        return scaledScore;
-    }
-
+    return map(score,0,1000,0,100); //map the score from 0 to 100%
 }
 
 
@@ -164,7 +155,6 @@ void waitForLaser() {
 
 void calibrateSensors() {
 
-	//int averagePerRing[numRings] = 0;
     HAL_Delay(500); //Wait half a second
     int value;
     for (int j = 1; j <= 10; j++) {
@@ -185,21 +175,21 @@ void startUpLCD(LCDController myLCD) {
 }
 
 
-uint32_t readADC(ADC_HandleTypeDef hadc, uint32_t channel) {
+uint32_t readADC(ADC_HandleTypeDef gADC, uint32_t channel) {
 	ADC_ChannelConfTypeDef sConfig;
 	sConfig.Channel = channel;
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	HAL_ADC_ConfigChannel(&hadc, &sConfig);
+	HAL_ADC_ConfigChannel(&gADC, &sConfig);
 
-	HAL_ADCEx_Calibration_Start(&hadc, ADC_SINGLE_ENDED);
+	HAL_ADCEx_Calibration_Start(&gADC, ADC_SINGLE_ENDED);
 
-	HAL_ADC_Start(&hadc);
-	HAL_ADC_PollForConversion(&hadc, HAL_MAX_DELAY);
-	uint32_t raw = HAL_ADC_GetValue(&hadc);
-	HAL_ADC_Stop(&hadc);
+	HAL_ADC_Start(&gADC);
+	HAL_ADC_PollForConversion(&gADC, HAL_MAX_DELAY);
+	uint32_t raw = HAL_ADC_GetValue(&gADC);
+	HAL_ADC_Stop(&gADC);
 
 	sConfig.Rank = ADC_RANK_NONE;
-	HAL_ADC_ConfigChannel(&hadc, &sConfig);
+	HAL_ADC_ConfigChannel(&gADC, &sConfig);
 	return raw;
 }
 
